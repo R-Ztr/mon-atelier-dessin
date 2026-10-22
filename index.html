@@ -33,6 +33,141 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;b
 .pics{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px}
 [hidden]{display:none!important}
 
+/* Apprentissage de l'écriture */
+.write-intro{background:var(--panel);border:3px solid var(--ink);border-radius:20px;padding:10px 14px;margin-bottom:10px;text-align:center}
+.write-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;background:var(--panel);border:3px solid var(--ink);border-radius:20px;padding:10px;margin-bottom:10px}
+.write-controls label{font-weight:700}
+.write-controls select{font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:7px;max-width:100%}
+.write-stage{background:#fff;border:4px solid var(--ink);border-radius:20px;overflow:hidden}
+#writeCv{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;background:#fff}
+.write-controls input{font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:7px;max-width:100%;width:260px}
+.write-tip{font-size:15px;text-align:center;margin:8px 0 0}
+
+</style>
+</head>
+<body>
+<main>
+<h1>Mon atelier de dessin</h1>
+<div class="tabs">
+  <button class="tab" id="tabD" aria-pressed="true">Dessiner</button>
+  <button class="tab" id="tabC" aria-pressed="false">Colorier</button>
+  <button class="tab" id="tabW" aria-pressed="false">✏️ Écrire</button>
+</div>
+
+<div class="bar"><div class="colors" id="colors"></div></div>
+
+<section id="dr">
+  <div class="bar">
+    <button class="tool sz" data-s="6" aria-label="Petit pinceau" aria-pressed="false"><i style="width:8px;height:8px"></i></button>
+    <button class="tool sz" data-s="16" aria-label="Moyen pinceau" aria-pressed="true"><i style="width:16px;height:16px"></i></button>
+    <button class="tool sz" data-s="34" aria-label="Gros pinceau" aria-pressed="false"><i style="width:30px;height:30px"></i></button>
+    <button class="tool" id="eraser" aria-pressed="false">Gomme</button>
+    <button class="tool" id="undo">Annuler</button>
+    <button class="tool" id="clear">Tout effacer</button>
+  </div>
+  <div class="bar" id="accs">
+    <button class="tool" data-a="pen" aria-pressed="true">Crayon</button>
+    <button class="tool" data-a="rainbow" aria-pressed="false">Arc-en-ciel</button>
+    <button class="tool" data-a="⭐" aria-pressed="false">⭐</button>
+    <button class="tool" data-a="❤️" aria-pressed="false">❤️</button>
+    <button class="tool" data-a="🌸" aria-pressed="false">🌸</button>
+    <button class="tool" data-a="🦋" aria-pressed="false">🦋</button>
+    <button class="tool" data-a="👑" aria-pressed="false">👑</button>
+    <button class="tool" data-a="🦄" aria-pressed="false">🦄</button>
+    <button class="tool" data-a="🐱" aria-pressed="false">🐱</button>
+    <button class="tool" data-a="🌈" aria-pressed="false">🌈</button>
+    <button class="tool" data-a="☀️" aria-pressed="false">☀️</button>
+    <button class="tool" data-a="🎀" aria-pressed="false">🎀</button>
+  </div>
+  <div class="stage"><canvas id="cv" width="1000" height="700"></canvas></div>
+</section>
+
+<section id="col" hidden>
+  <div class="pics">
+    <button class="tool" data-p="0" aria-pressed="true">Fleur</button>
+    <button class="tool" data-p="1" aria-pressed="false">Maison</button>
+    <button class="tool" data-p="2" aria-pressed="false">Poisson</button>
+    <button class="tool" data-p="3" aria-pressed="false">Princesse</button>
+    <button class="tool" data-p="4" aria-pressed="false">Licorne</button>
+    <button class="tool" data-p="5" aria-pressed="false">Chat</button>
+    <button class="tool" data-p="6" aria-pressed="false">Voiture</button>
+    <button class="tool" data-p="7" aria-pressed="false">Papillon</button>
+    <button class="tool" id="reset">Recommencer</button>
+  </div>
+  <div class="stage" id="svgbox"></div>
+</section>
+
+<section id="wr" hidden>
+  <div class="write-intro"><strong>À toi de jouer !</strong><br>Écris une lettre ou un mot (ex. PAPA, MAMAN ou ton prénom), puis repasse les pointillés.</div>
+  <div class="write-controls"><label for="writeText">Lettre ou mot</label><input id="writeText" type="text" maxlength="24" value="A" placeholder="Ex. PAPA, MAMAN, Jade" autocomplete="off" spellcheck="false" aria-label="Lettre ou mot à repasser"><button class="tool" id="caseToggle" aria-pressed="false">Minuscules</button><button class="tool" id="clearWrite">Effacer le tracé</button></div>
+  <div class="write-stage"><canvas id="writeCv" width="1000" height="700" aria-label="Zone pour repasser sur les lettres en pointillés"></canvas></div>
+  <p class="write-tip">Suis les petits points avec ton doigt ou ta souris. Le bouton Effacer le tracé permet de recommencer sans changer de mot.</p>
+</section>
+</main>
+
+<script>
+var COLORS=["#e63946","#ff6b6b","#ff8c42","#ffb703","#ffd23f","#fff176","#b5e48c","#7bc950","#2d9d4b","#2a9d8f","#4cc9f0","#3a86ff","#1d3fbf","#8338ec","#c77dff","#ff7eb6","#f72585","#ffc8dd","#8b5a2b","#d2a679","#9e9e9e","#222222","#ffffff","#ffd6a5"];
+var color=COLORS[0],size=16,erasing=false,stamp=null,rainbow=false;
+var $=function(s){return document.querySelector(s)};
+var cbox=$("#colors");
+COLORS.forEach(function(c,i){
+  var b=document.createElement("button");b.className="c";b.style.background=c;
+  b.setAttribute("aria-label","Couleur "+(i+1));b.setAttribute("aria-pressed",i==0);
+  b.onclick=function(){color=c;erasing=false;if(window.toPen)toPen();$("#eraser").setAttribute("aria-pressed","false");
+    cbox.querySelectorAll(".c").forEach(function(x){x.setAttribute("aria-pressed",x===b)})};
+  cbox.appendChild(b);
+});
+
+/* Dessin */
+var cv=$("#cv"),ctx=cv.getContext("2d"),drawing=false,last=null,hist=[];
+function blank(){ctx.fillStyle="#fff";ctx.fillRect(0,0,cv.width,cv.height)}
+blank();
+function pos(e){var r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}}
+var strokes=[],curS=null;
+function dot(s){if(s.t){ctx.font=s.s+"px serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(s.t,s.p[0].x,s.p[0].y);return}
+ctx.lineWidth=s.s;ctx.lineCap="round";ctx.lineJoin="round";
+if(s.r){for(var i=1;i<s.p.length;i++){ctx.strokeStyle="hsl("+((i*6)%360)+",90%,55%)";ctx.beginPath();ctx.moveTo(s.p[i-1].x,s.p[i-1].y);ctx.lineTo(s.p[i].x,s.p[i].y);ctx.stroke()}return}
+ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(s.p[0].x,s.p[0].y,s.s/2,0,7);ctx.fill();ctx.strokeStyle=s.c;ctx.beginPath();s.p.forEach(function(q,i){i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y)});ctx.stroke()}
+function redraw(){blank();for(var i=0;i<strokes.length;i++){if(strokes[i].clr)blank();else dot(strokes[i])}}
+cv.addEventListener("pointerdown",function(e){
+  e.preventDefault();cv.setPointerCapture(e.pointerId);last=pos(e);if(stamp&&!erasing){var st={t:stamp,s:size*3+36,p:[last]};strokes.push(st);dot(st);return}drawing=true;curS={c:erasing?"#fff":color,s:size,p:[last],r:rainbow&&!erasing};strokes.push(curS);
+  ctx.fillStyle=erasing?"#fff":color;ctx.beginPath();ctx.arc(last.x,last.y,size/2,0,7);ctx.fill();
+});
+cv.addEventListener("pointermove",function(e){
+  if(!drawing)return;var p=pos(e);
+  ctx.strokeStyle=curS.r?"hsl("+((curS.p.length*6)%360)+",90%,55%)":(erasing?"#fff":color);ctx.lineWidth=size;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;curS.p.push(p);
+});
+["pointerup","pointercancel"].forEach(function(t){cv.addEventListener(t,function(){drawing=false})});
+document.querySelectorAll(".sz").forEach(function(b){b.onclick=function(){
+  size=+b.dataset.s;erasing=false;$("#eraser").setAttribute("aria-pressed","false");
+  document.querySelectorAll(".sz").forEach(function(x){x.setAttribute("aria-pressed",x===b)})}});
+var accs=document.querySelectorAll("[data-a]");
+function toPen(){stamp=null;rainbow=false;accs.forEach(function(x){x.setAttribute("aria-pressed",x.dataset.a=="pen")})}
+accs.forEach(function(b){b.onclick=function(){var a=b.dataset.a;stamp=null;rainbow=false;erasing=false;$("#eraser").setAttribute("aria-pressed","false");if(a=="rainbow")rainbow=true;else if(a!="pen")stamp=a;accs.forEach(function(x){x.setAttribute("aria-pressed",x===b)})}});
+$("#eraser").onclick=function(){erasing=!erasing;this.setAttribute("aria-pressed",erasing)};
+$("#undo").onclick=function(){strokes.pop();redraw()};
+$("#clear").onclick=function(){strokes.push({clr:1});redraw()};
+
+/* Coloriage */
+var P=[
+'<svg viewBox="0 0 400 300"><circle class="z" cx="340" cy="55" r="32"/><rect class="z" x="0" y="250" width="400" height="50"/><rect class="z" x="192" y="150" width="16" height="105"/><path class="z" d="M200 220 Q150 190 140 230 Q170 250 200 220Z"/><path class="z" d="M200 200 Q250 170 262 210 Q230 232 200 200Z"/><circle class="z" cx="200" cy="70" r="30"/><circle class="z" cx="248" cy="105" r="30"/><circle class="z" cx="152" cy="105" r="30"/><circle class="z" cx="230" cy="150" r="30"/><circle class="z" cx="170" cy="150" r="30"/><circle class="z" cx="200" cy="112" r="28"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><circle class="z" cx="70" cy="60" r="32"/><rect class="z" x="0" y="250" width="400" height="50"/><rect class="z" x="100" y="130" width="200" height="120"/><polygon class="z" points="85,135 200,50 315,135"/><rect class="z" x="180" y="180" width="44" height="70"/><rect class="z" x="120" y="155" width="45" height="45"/><rect class="z" x="240" y="155" width="45" height="45"/><rect class="z" x="250" y="60" width="26" height="50"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><polygon class="z" points="290,150 365,95 365,205"/><ellipse class="z" cx="190" cy="150" rx="110" ry="70"/><path class="z" d="M160 82 Q190 40 225 84Z"/><path class="z" d="M165 218 Q195 258 225 216Z"/><circle class="z" cx="120" cy="135" r="14"/><circle class="z" cx="60" cy="60" r="18"/><circle class="z" cx="95" cy="35" r="12"/><path class="z" d="M0 270 Q50 240 100 270 T200 270 T300 270 T400 270 V300 H0Z"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><ellipse class="z" cx="200" cy="125" rx="54" ry="68"/><path class="z" d="M170 140 L230 140 L295 275 L105 275Z"/><circle class="z" cx="200" cy="95" r="35"/><polygon class="z" points="168,68 176,38 190,58 200,32 210,58 224,38 232,68"/><circle class="z" cx="158" cy="152" r="15"/><circle class="z" cx="242" cy="152" r="15"/><polygon class="z" points="200,158 214,176 200,170 186,176"/><polygon class="z" points="60,60 68,80 90,80 72,92 80,114 60,100 40,114 48,92 30,80 52,80"/><polygon class="z" points="340,40 345,52 358,52 348,60 352,73 340,65 328,73 332,60 322,52 335,52"/><rect class="z" x="0" y="275" width="400" height="25"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><rect class="z" x="112" y="225" width="22" height="55"/><rect class="z" x="150" y="225" width="22" height="55"/><rect class="z" x="215" y="225" width="22" height="55"/><rect class="z" x="255" y="225" width="22" height="55"/><path class="z" d="M100 175 Q40 185 55 255 Q90 235 105 215Z"/><ellipse class="z" cx="190" cy="195" rx="95" ry="50"/><polygon class="z" points="255,180 285,95 335,130 300,200"/><ellipse class="z" cx="315" cy="112" rx="40" ry="30"/><polygon class="z" points="322,84 338,28 348,88"/><polygon class="z" points="292,88 292,56 314,82"/><circle class="z" cx="283" cy="108" r="14"/><circle class="z" cx="272" cy="140" r="14"/><circle class="z" cx="326" cy="106" r="5"/><rect class="z" x="0" y="280" width="400" height="20"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><path class="z" d="M265 235 Q345 225 335 160 Q310 195 262 205Z"/><ellipse class="z" cx="200" cy="220" rx="72" ry="56"/><ellipse class="z" cx="165" cy="272" rx="22" ry="12"/><ellipse class="z" cx="235" cy="272" rx="22" ry="12"/><polygon class="z" points="158,78 162,28 198,62"/><polygon class="z" points="202,62 238,28 242,78"/><circle class="z" cx="200" cy="112" r="50"/><circle class="z" cx="180" cy="105" r="8"/><circle class="z" cx="220" cy="105" r="8"/><polygon class="z" points="191,124 209,124 200,136"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><circle class="z" cx="340" cy="50" r="30"/><rect class="z" x="0" y="238" width="400" height="62"/><rect class="z" x="55" y="150" width="290" height="62" rx="14"/><polygon class="z" points="115,150 158,98 272,98 308,150"/><polygon class="z" points="132,148 164,110 205,110 205,148"/><polygon class="z" points="215,110 264,110 290,148 215,148"/><circle class="z" cx="125" cy="215" r="29"/><circle class="z" cx="275" cy="215" r="29"/><circle class="z" cx="125" cy="215" r="12"/><circle class="z" cx="275" cy="215" r="12"/></svg>',
+'<svg viewBox="0 0 400 300"><rect class="z" x="0" y="0" width="400" height="300"/><ellipse class="z" cx="135" cy="110" rx="72" ry="52"/><ellipse class="z" cx="265" cy="110" rx="72" ry="52"/><ellipse class="z" cx="150" cy="205" rx="52" ry="42"/><ellipse class="z" cx="250" cy="205" rx="52" ry="42"/><circle class="z" cx="130" cy="110" r="22"/><circle class="z" cx="270" cy="110" r="22"/><circle class="z" cx="150" cy="205" r="16"/><circle class="z" cx="250" cy="205" r="16"/><ellipse class="z" cx="200" cy="155" rx="15" ry="68"/><circle class="z" cx="200" cy="78" r="17"/></svg>'
+];
+var cur=0,box=$("#svgbox");
+function show(i){cur=i;box.innerHTML=P[i];
+  document.querySelectorAll("[data-p]").forEach(function(b){b.setAttribute("aria-pressed",+b.dataset.p===i)})}
+box.addEventListener("click",function(e){if(e.target.classList.contains("z"))e.target.style.fill=color});
+document.querySelectorAll("[data-p]").forEach(function(b){b.onclick=function(){show(+b.dataset.p)}});
+$("#reset").onclick=function(){show(cur)};
+show(0);
+
 /* Apprentissage de l'écriture : mots en pointillés à repasser */
 var writeCv=$("#writeCv"),wctx=writeCv.getContext("2d"),writeInput=$("#writeText");
 var lowerCase=false,writing=false,writeStrokes=[];
