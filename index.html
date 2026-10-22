@@ -32,6 +32,16 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;b
 .z{fill:#fff;stroke:#2b2a4c;stroke-width:4;stroke-linejoin:round;cursor:pointer}
 .pics{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px}
 [hidden]{display:none!important}
+
+/* Apprentissage de l'écriture */
+.write-intro{background:var(--panel);border:3px solid var(--ink);border-radius:20px;padding:10px 14px;margin-bottom:10px;text-align:center}
+.write-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;background:var(--panel);border:3px solid var(--ink);border-radius:20px;padding:10px;margin-bottom:10px}
+.write-controls label{font-weight:700}
+.write-controls select{font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:7px;max-width:100%}
+.write-stage{background:#fff;border:4px solid var(--ink);border-radius:20px;overflow:hidden}
+#writeCv{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;background:#fff}
+.write-tip{font-size:15px;text-align:center;margin:8px 0 0}
+
 </style>
 </head>
 <body>
@@ -40,6 +50,7 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;b
 <div class="tabs">
   <button class="tab" id="tabD" aria-pressed="true">Dessiner</button>
   <button class="tab" id="tabC" aria-pressed="false">Colorier</button>
+  <button class="tab" id="tabW" aria-pressed="false">✏️ Écrire</button>
 </div>
 
 <div class="bar"><div class="colors" id="colors"></div></div>
@@ -83,6 +94,23 @@ canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair;b
     <button class="tool" id="reset">Recommencer</button>
   </div>
   <div class="stage" id="svgbox"></div>
+</section>
+
+<section id="wr" hidden>
+  <div class="write-intro">
+    <strong>À toi de jouer !</strong><br>
+    Choisis une lettre, puis repasse sur les petits pointillés avec ton doigt ou ta souris.
+  </div>
+  <div class="write-controls">
+    <button class="tool" id="prevLetter" aria-label="Lettre précédente">◀</button>
+    <label for="letterChoice">Lettre</label>
+    <select id="letterChoice" aria-label="Choisir une lettre"></select>
+    <button class="tool" id="nextLetter" aria-label="Lettre suivante">▶</button>
+    <button class="tool" id="caseToggle" aria-pressed="false">Minuscule : non</button>
+    <button class="tool" id="clearWrite">Effacer</button>
+  </div>
+  <div class="write-stage"><canvas id="writeCv" width="1000" height="700" aria-label="Zone pour repasser sur les lettres en pointillés"></canvas></div>
+  <p class="write-tip">Astuce : commence en haut de la lettre et suis les pointillés doucement. Tu peux recommencer autant de fois que tu veux !</p>
 </section>
 </main>
 
@@ -149,10 +177,44 @@ document.querySelectorAll("[data-p]").forEach(function(b){b.onclick=function(){s
 $("#reset").onclick=function(){show(cur)};
 show(0);
 
+/* Apprentissage de l'écriture : lettres pointillées à repasser */
+var writeCv=$("#writeCv"),wctx=writeCv.getContext("2d"),letterSelect=$("#letterChoice");
+var alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),letterIndex=0,lowerCase=false,writing=false,lastWrite=null;
+alphabet.forEach(function(ch,i){var op=document.createElement("option");op.value=i;op.textContent=ch;letterSelect.appendChild(op)});
+function currentLetter(){var ch=alphabet[letterIndex];return lowerCase?ch.toLowerCase():ch}
+function drawWriteGuide(){
+  wctx.clearRect(0,0,writeCv.width,writeCv.height);
+  wctx.fillStyle="#fff";wctx.fillRect(0,0,writeCv.width,writeCv.height);
+  wctx.strokeStyle="#d8e2f0";wctx.lineWidth=3;wctx.setLineDash([10,10]);
+  [170,350,535].forEach(function(y){wctx.beginPath();wctx.moveTo(55,y);wctx.lineTo(945,y);wctx.stroke()});
+  wctx.setLineDash([]);
+  wctx.strokeStyle="#d0d8e8";wctx.lineWidth=2;wctx.beginPath();wctx.moveTo(55,350);wctx.lineTo(945,350);wctx.stroke();
+  wctx.font="bold 390px 'Baloo 2', 'Comic Sans MS', sans-serif";wctx.textAlign="center";wctx.textBaseline="middle";
+  wctx.lineJoin="round";wctx.lineCap="round";wctx.lineWidth=7;wctx.strokeStyle="#8b9bb4";
+  wctx.setLineDash([2,13]);wctx.strokeText(currentLetter(),500,350);wctx.setLineDash([]);
+  wctx.fillStyle="#e8edf5";wctx.font="bold 42px 'Baloo 2', sans-serif";wctx.textAlign="left";wctx.fillText("Repasse les pointillés",55,625);
+}
+function writePos(e){var r=writeCv.getBoundingClientRect();return{x:(e.clientX-r.left)*writeCv.width/r.width,y:(e.clientY-r.top)*writeCv.height/r.height}}
+writeCv.addEventListener("pointerdown",function(e){e.preventDefault();writeCv.setPointerCapture(e.pointerId);writing=true;lastWrite=writePos(e)});
+writeCv.addEventListener("pointermove",function(e){if(!writing)return;var p=writePos(e);wctx.beginPath();wctx.moveTo(lastWrite.x,lastWrite.y);wctx.lineTo(p.x,p.y);wctx.strokeStyle="#ff6b6b";wctx.lineWidth=12;wctx.lineCap="round";wctx.lineJoin="round";wctx.stroke();lastWrite=p});
+["pointerup","pointercancel"].forEach(function(t){writeCv.addEventListener(t,function(){writing=false})});
+function refreshLetter(){letterSelect.value=letterIndex;$("#caseToggle").textContent="Minuscule : "+(lowerCase?"oui":"non");$("#caseToggle").setAttribute("aria-pressed",lowerCase);drawWriteGuide()}
+letterSelect.onchange=function(){letterIndex=+this.value;refreshLetter()};
+$("#prevLetter").onclick=function(){letterIndex=(letterIndex+alphabet.length-1)%alphabet.length;refreshLetter()};
+$("#nextLetter").onclick=function(){letterIndex=(letterIndex+1)%alphabet.length;refreshLetter()};
+$("#caseToggle").onclick=function(){lowerCase=!lowerCase;refreshLetter()};
+$("#clearWrite").onclick=drawWriteGuide;
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(drawWriteGuide);
+refreshLetter();
+
 /* Onglets */
-function tab(d){$("#dr").hidden=!d;$("#col").hidden=d;
-  $("#tabD").setAttribute("aria-pressed",d);$("#tabC").setAttribute("aria-pressed",!d)}
-$("#tabD").onclick=function(){tab(true)};$("#tabC").onclick=function(){tab(false)};
+function tab(page){
+  var isDraw=page==="draw",isColor=page==="color",isWrite=page==="write";
+  $("#dr").hidden=!isDraw;$("#col").hidden=!isColor;$("#wr").hidden=!isWrite;
+  $("#tabD").setAttribute("aria-pressed",isDraw);$("#tabC").setAttribute("aria-pressed",isColor);$("#tabW").setAttribute("aria-pressed",isWrite);
+  if(isWrite)drawWriteGuide();
+}
+$("#tabD").onclick=function(){tab("draw")};$("#tabC").onclick=function(){tab("color")};$("#tabW").onclick=function(){tab("write")};
 </script>
 </body>
 </html>
